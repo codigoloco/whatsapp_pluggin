@@ -1,0 +1,13 @@
+{
+  "manifest_version": 3,
+  "name": "Mi Primera Extensión",
+  "version": "1.0",
+  "description": "Un saludo desde mi navegador.",
+  "permissions": [
+    "scripting",
+    "activeTab"
+  ],
+  "action": {
+    "default_popup": "popup.html"
+  }
+}
