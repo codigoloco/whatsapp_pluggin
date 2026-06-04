@@ -1,111 +1,74 @@
-// popup.js
+// popup.js - WhatsApp Privacy Pro
 
-class WhatsAppPrivacyManager {
-  constructor() {
-    this.initElements();
-    this.addEventListeners();
-  }
+const DEFAULT_CONFIG = {
+  enabled: false,
+  contactos: true,
+  mensajes: true,
+  hover: true,
+  ultimo: true,
+  avatars: false,
+  media: false
+};
 
-  initElements() {
-    this.btnPrivacidad = document.getElementById('ocultarChats');
-    this.btnSaludar = document.getElementById('miBoton');
-    
-    // Checkboxes
-    this.checkContactos = document.getElementById('checkContactos');
-    this.checkMensajes = document.getElementById('checkMensajes');
-    this.checkHover = document.getElementById('checkHover');
-    this.checkUltimo = document.getElementById('checkUltimo');
-  }
+const switchesConfig = [
+  { id: 'checkMaster', key: 'enabled' },
+  { id: 'checkContactos', key: 'contactos' },
+  { id: 'checkAvatars', key: 'avatars' },
+  { id: 'checkMensajes', key: 'mensajes' },
+  { id: 'checkMedia', key: 'media' },
+  { id: 'checkHover', key: 'hover' },
+  { id: 'checkUltimo', key: 'ultimo' }
+];
 
-  addEventListeners() {
-    this.btnPrivacidad.addEventListener('click', () => {
-      const config = {
-        contactos: this.checkContactos.checked,
-        mensajes: this.checkMensajes.checked,
-        hover: this.checkHover.checked,
-        ultimo: this.checkUltimo.checked
-      };
-      this.ejecutarEnTab(mainPrivacyLogic, config);
+document.addEventListener('DOMContentLoaded', () => {
+  initElementsAndLoadSettings();
+});
+
+function initElementsAndLoadSettings() {
+  const statusBadge = document.getElementById('statusBadge');
+  const masterCard = document.getElementById('masterCard');
+
+  // Cargar configuración guardada y aplicarla a los switches
+  chrome.storage.local.get(DEFAULT_CONFIG, (config) => {
+    switchesConfig.forEach(({ id, key }) => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.checked = config[key];
+      }
     });
 
-    this.btnSaludar.addEventListener('click', () => alert("¡Hola!"));
-  }
+    updateUIState(config.enabled, statusBadge, masterCard);
+  });
 
-  async ejecutarEnTab(funcion, config) {
-    try {
-      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-      if (tab?.url?.includes("web.whatsapp.com")) {
-        chrome.scripting.executeScript({
-          target: { tabId: tab.id },
-          func: funcion, // Inyectamos la función independiente
-          args: [config]
+  // Asignar listeners de cambio a todos los switches
+  switchesConfig.forEach(({ id, key }) => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.addEventListener('change', (e) => {
+        const isChecked = e.target.checked;
+        
+        // Guardar el cambio inmediatamente en storage local
+        chrome.storage.local.set({ [key]: isChecked }, () => {
+          if (key === 'enabled') {
+            updateUIState(isChecked, statusBadge, masterCard);
+          }
         });
-      } else {
-        alert("Por favor, abre WhatsApp Web.");
-      }
-    } catch (error) {
-      console.error("Error al inyectar script:", error);
+      });
     }
-  }
+  });
 }
 
-/**
- * Función independiente para inyectar en la página.
- * Se define fuera de la clase para evitar errores de sintaxis al inyectar 
- * (los métodos de clase a veces pierden la palabra clave 'function' al serializarse).
- */
-function mainPrivacyLogic(config) {
-  const STYLE_ID = 'wp-privacy-styles';
-  let styleTag = document.getElementById(STYLE_ID);
+// Actualiza el indicador visual de estado y tarjeta principal
+function updateUIState(isEnabled, statusBadge, masterCard) {
+  if (!statusBadge || !masterCard) return;
 
-  // Si ya existe, lo quitamos (Desactivar)
-  if (styleTag) {
-    styleTag.remove();
-    // Limpiar posibles filtros inline
-    document.querySelectorAll('.message-in').forEach(el => el.style.filter = '');
-    return;
-  }
-
-  // Si no existe, lo creamos (Activar)
-  styleTag = document.createElement('style');
-  styleTag.id = STYLE_ID;
-  
-  const BLUR = '20px';
-  let css = '';
-
-  if (config.contactos) {
-    css += `#pane-side { filter: blur(${BLUR}) !important; transition: filter 0.3s; }\n`;
-  }
-  
-  if (config.mensajes) {
-    css += `.message-in, .message-out { filter: blur(${BLUR}) !important; transition: filter 0.2s; }\n`;
-  }
-
-  if (config.hover) {
-    css += `
-      #pane-side:hover, 
-      .message-in:hover, 
-      .message-out:hover,
-      div[role="row"]:hover { 
-        filter: none !important; 
-      }\n`;
-  }
-
-  styleTag.innerHTML = css;
-  document.head.appendChild(styleTag);
-
-  // Si quiere ver el último mensaje, lo enfocamos manualmente
-  if (config.mensajes && config.ultimo) {
-    const received = document.querySelectorAll('.message-in');
-    if (received.length > 0) {
-      const last = received[received.length - 1];
-      last.style.filter = 'none';
-      last.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }
+  if (isEnabled) {
+    statusBadge.textContent = 'Activo';
+    statusBadge.classList.add('active');
+    masterCard.classList.add('active');
+  } else {
+    statusBadge.textContent = 'Inactivo';
+    statusBadge.classList.remove('active');
+    masterCard.classList.remove('active');
   }
 }
-
-// Inicializamos la aplicación cuando el popup esté listo
-document.addEventListener('DOMContentLoaded', () => {
-  new WhatsAppPrivacyManager();
-});
