@@ -6,8 +6,8 @@ const DEFAULT_CONFIG = {
   mensajes: true,
   hover: true,
   ultimo: true,
-  avatars: false,
-  media: false
+  avatars: true, // Coincide con el estado 'checked' en el HTML
+  media: true    // Coincide con el estado 'checked' en el HTML
 };
 
 const switchesConfig = [
