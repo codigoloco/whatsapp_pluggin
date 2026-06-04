@@ -98,10 +98,13 @@ function applyPrivacyStyles() {
     `;
   }
 
-  // 3. Desenfocar Mensajes (Texto del chat activo)
+  // 3. Desenfocar Mensajes (Texto del chat activo - Solo texto seleccionable/copiable, sin afectar multimedia)
   if (activeConfig.mensajes) {
     css += `
-      .message-in, .message-out, [data-testid="msg-container"] {
+      .message-in .selectable-text, 
+      .message-out .selectable-text,
+      .message-in .copyable-text:not(img):not(video),
+      .message-out .copyable-text:not(img):not(video) {
         filter: blur(${BLUR_VAL}) !important;
         transition: filter 0.25s ease !important;
       }
@@ -128,6 +131,7 @@ function applyPrivacyStyles() {
   // 5. Revelar al pasar el mouse (Efecto Hover)
   if (activeConfig.hover) {
     css += `
+      /* Hover en contactos y barra lateral */
       #pane-side span[title]:hover,
       [data-testid="cell-frame-container"] span[title]:hover,
       [data-testid="chat-list"] span[title]:hover,
@@ -141,19 +145,32 @@ function applyPrivacyStyles() {
       [data-testid="chat-list"] img:hover,
       header img:hover, 
       [data-testid="chat-header"] img:hover, 
-      [data-testid="avatar"] img:hover,
-      .message-in:hover, .message-out:hover, [data-testid="msg-container"]:hover,
-      .message-in img:hover, .message-out img:hover,
-      [data-testid="image-element"]:hover, [data-testid="video-element"]:hover,
-      [data-testid="audio-element"]:hover, div[role="img"] img:hover {
+      [data-testid="avatar"] img:hover {
+        filter: none !important;
+      }
+
+      /* Hover en globos de mensajes (revela texto y multimedia del globo específico) */
+      .message-in:hover .selectable-text,
+      .message-out:hover .selectable-text,
+      .message-in:hover .copyable-text,
+      .message-out:hover .copyable-text,
+      .message-in:hover img, 
+      .message-out:hover img,
+      .message-in:hover video, 
+      .message-out:hover video,
+      [data-testid="image-element"]:hover,
+      [data-testid="video-element"]:hover,
+      [data-testid="audio-element"]:hover,
+      div[role="img"] img:hover {
         filter: none !important;
       }
     `;
   }
 
-  // 6. Regla para exceptuar el último mensaje recibido
+  // 6. Regla para exceptuar el último mensaje recibido (Revela su texto)
   css += `
-    .wp-last-message {
+    .wp-last-message .selectable-text,
+    .wp-last-message .copyable-text {
       filter: none !important;
     }
   `;
